@@ -1,3 +1,18 @@
+/* This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * 
+ * Copyright 2018 Andrea Beconcini
+ */
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
@@ -42,8 +57,8 @@ new_task()
 	return (struct task *)calloc(1, sizeof(struct task));
 }
 
-/* No need to pass the head of the queue for address, since the first task in 
- * the list is the listening task, always present.
+/* No need to pass the head of the queue by address: the first task in 
+ * the list is the listening task that is always present.
  */
 int
 event_loop(struct task *t)
@@ -63,13 +78,10 @@ event_loop(struct task *t)
 			if (c->what_io == WANT_WRITE)
 				FD_SET(c->fd, &w);
 			//removing dying tasks
-			if (next) {
-				if (next->what_io == WANT_DIE) {
+			if (next && next->what_io == WANT_DIE) {
 					c->next = next->next;
 					free(next);
 				}
-				next = next->next;
-			}
 			if (c->what_io != 0 && c->fd > max_fd)
 				max_fd = c->fd;
 		}
@@ -87,9 +99,8 @@ event_loop(struct task *t)
 				ret = c->handler(c);
 				if (ret < 0) {
 					c->what_io = WANT_DIE;
-					if (c->private) {
+					if (c->private)
 						free(c->private);
-					}
 					close(c->fd);
 					c->fd = 0;
 				}
@@ -117,11 +128,13 @@ client_handler(struct task *t)
 		}
 		if (ret == 0)
 			return 1;
+
 		buf[ret]= '\0';
 		printf("%s", buf);
 		*what_next = SEND_MSG;
 		t->what_io = WANT_WRITE;
 		return 0;
+
 	case SEND_MSG:
 		buf = "ciao\n";
 		len = strlen(buf);
